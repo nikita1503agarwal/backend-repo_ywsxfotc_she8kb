@@ -1,48 +1,60 @@
 """
-Database Schemas
+Database Schemas for Oil & Gas Drawing Intelligence MVP
 
-Define your MongoDB collection schemas here using Pydantic models.
-These schemas are used for data validation in your application.
-
-Each Pydantic model represents a collection in your database.
-Model name is converted to lowercase for the collection name:
-- User -> "user" collection
-- Product -> "product" collection
-- BlogPost -> "blogs" collection
+Each Pydantic model represents a MongoDB collection. The collection name is the
+lowercased class name (handled by the Flames platform conventions).
 """
 
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, List, Dict, Any
 
-# Example schemas (replace with your own):
 
+class Project(BaseModel):
+    name: str = Field(..., description="Project display name")
+    code: Optional[str] = Field(None, description="Project code or number")
+    description: Optional[str] = Field(None, description="Short description")
+    revision: Optional[str] = Field(None, description="Current revision tag")
+    created_by: Optional[str] = Field(None, description="User who created the project")
+
+
+class Upload(BaseModel):
+    project_id: str = Field(..., description="Related project id (string)")
+    filename: str = Field(..., description="Original file name")
+    filepath: str = Field(..., description="Server-side path to stored file")
+    filetype: str = Field(..., description="Detected type: pdf|dxf|dwg|step|ifc|obj|other")
+    size_bytes: int = Field(..., description="File size in bytes")
+
+
+class ExtractionItem(BaseModel):
+    project_id: str = Field(..., description="Project id")
+    upload_id: str = Field(..., description="Upload id")
+    kind: str = Field(..., description="tag|bom|text|geometry|meta")
+    label: str = Field(..., description="Display label, e.g., tag string or part name")
+    attributes: Dict[str, Any] = Field(default_factory=dict, description="Additional attributes")
+    page: Optional[int] = Field(None, description="Page index for 2D docs")
+    confidence: Optional[float] = Field(None, description="0-1 confidence score if applicable")
+
+
+class DocumentDraft(BaseModel):
+    project_id: str = Field(..., description="Project id")
+    doc_type: str = Field(..., description="tag-index|bom|summary")
+    title: str = Field(..., description="Document title")
+    items: List[Dict[str, Any]] = Field(default_factory=list, description="List of rows/entries")
+    meta: Dict[str, Any] = Field(default_factory=dict, description="Document metadata")
+
+
+# Example schemas kept for reference but not used by the MVP directly
 class User(BaseModel):
-    """
-    Users collection schema
-    Collection name: "user" (lowercase of class name)
-    """
-    name: str = Field(..., description="Full name")
-    email: str = Field(..., description="Email address")
-    address: str = Field(..., description="Address")
-    age: Optional[int] = Field(None, ge=0, le=120, description="Age in years")
-    is_active: bool = Field(True, description="Whether user is active")
+    name: str
+    email: str
+    address: str
+    age: Optional[int] = None
+    is_active: bool = True
+
 
 class Product(BaseModel):
-    """
-    Products collection schema
-    Collection name: "product" (lowercase of class name)
-    """
-    title: str = Field(..., description="Product title")
-    description: Optional[str] = Field(None, description="Product description")
-    price: float = Field(..., ge=0, description="Price in dollars")
-    category: str = Field(..., description="Product category")
-    in_stock: bool = Field(True, description="Whether product is in stock")
-
-# Add your own schemas here:
-# --------------------------------------------------
-
-# Note: The Flames database viewer will automatically:
-# 1. Read these schemas from GET /schema endpoint
-# 2. Use them for document validation when creating/editing
-# 3. Handle all database operations (CRUD) directly
-# 4. You don't need to create any database endpoints!
+    title: str
+    description: Optional[str] = None
+    price: float
+    category: str
+    in_stock: bool = True
